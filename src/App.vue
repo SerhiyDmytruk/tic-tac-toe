@@ -1,95 +1,129 @@
 <script setup>
+import { ref, computed } from "vue";
 
-import {ref} from 'vue';
+const player = ref("X");
+const board = ref([
+  ["", "", ""],
+  ["", "", ""],
+  ["", "", ""],
+]);
 
-const xPlayer = ref('X');
-const oPlayer = ref('O');
-let toggle = ref(false);
-let winnerBlock = ref(false);
-let title = xPlayer.value;
-
-function turn() {
-    toggle.value = !toggle.value
-
-    if(toggle.value) return xPlayer.value;
-    
-    return oPlayer.value;
+const checkRowForSame = (row) => {
+  if (row.filter((i) => i !== "").length) {
+    const threeInRow = row.every((i) => i === row[0]);
+    if (threeInRow) return row[0];
+  }
+  return false;
 };
 
-let row = ref(['','','', '','','', '','','']);
-
-const tap = function(event, index, arr) {
-    event.target.innerText = turn();
-    title = event.target.innerText;
-    event.target.disabled = true;
-    arr[index] = event.target.innerText;
-
-    if(winner(arr)) {
-        winnerBlock.value = true;
-        return false;
+const threeInRowHorizontally = computed(() => {
+  for (let i = 0; i < board.value.length; i++) {
+    if (checkRowForSame(board.value[i])) {
+      return board.value[i][0];
     }
-    
-}
+  }
+  return false;
+});
 
-function winner(squares) {
-    const winComb = [
-        [0, 1, 2],
-        [3, 4, 5],
-        [6, 7, 8],
-        [0, 3, 6],
-        [1, 4, 7],
-        [2, 5, 8],
-        [0, 4, 8],
-        [2, 4, 6],
-    ];
-
-    for(let i = 0; i < winComb.length; i++) {
-        const [a,b,c] = winComb[i];
-        if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-            return squares[a];
-        }
+const threeInRowVertically = computed(() => {
+  const columns = board.value.reduce(
+    (result, row) =>
+      row.map((value, index) => (result[index] || []).concat(value)),
+    []
+  );
+  for (let i = 0; i < columns.length; i++) {
+    if (checkRowForSame(columns[i])) {
+      return columns[i][0];
     }
-    return null;
-}
+  }
+  return false;
+});
 
-function clear() {
-    row = ref(['','','', '','','', '','','']);
-    winnerBlock.value = false;
-}
+const threeInRowDiagonally = computed(() => {
+  const leftToRight = checkRowForSame([
+    board.value[0][0],
+    board.value[1][1],
+    board.value[2][2],
+  ]);
+  if (leftToRight) return leftToRight;
 
+  const righToLeft = checkRowForSame([
+    board.value[0][2],
+    board.value[1][1],
+    board.value[2][0],
+  ]);
+
+  if (righToLeft) return righToLeft;
+
+  return false;
+});
+
+const winner = computed(() => {
+  return (
+    threeInRowHorizontally.value ||
+    threeInRowVertically.value ||
+    threeInRowDiagonally.value ||
+    null
+  );
+});
+
+const move = (x, y) => {
+  if (winner.value || board.value[x][y] !== "") return;
+  board.value[x][y] = player.value;
+  player.value = player.value === "X" ? "O" : "X";
+};
+
+const reset = () => {
+  board.value = [
+    ["", "", ""],
+    ["", "", ""],
+    ["", "", ""],
+  ];
+  player.value = "X";
+};
+
+const isTie = computed(() => {
+  return !board.value.flat().includes("") && !winner.value;
+});
+
+const isOver = computed(() => {
+  return winner.value || isTie.value;
+});
 </script>
 
 <template>
-    <div class="rounded-xl overflow-hidden w-1/2 m-auto">
-        <div class="text-black text-3xl text-center font-bold">
-            <p class="text-4xl">Tic-Tac-Toe</p>
-            <span>Player <span>{{title}}</span>'s turn </span>
+  <main class="h-screen pt-16 text-center dark:bg-gray-800 dark:text-white">
+    <h1 class="mb-3 text-3xl font-bold">Tic-Tac-Toe</h1>
 
-            <div v-if="winnerBlock" class="pt-8 text-6xl">
-                <p>Player {{title}} win</p>
-                <button 
-                    class="bg-emerald-500 p-4 rounded-lg text-white"
-                    @click="clear"
-                >New Game!</button>
-            </div>
-            
-        </div>
-        <div class="relative rounded-xl overflow-auto p-8 not-prose">
-            <div 
-                class="grid grid-cols-3 gap-1 font-mono text-white text-sm text-center font-bold leading-10 rounded-lg">
-                <div 
-                v-for="(button, index) in row"
-                :key="index"
-                class="p-8 rounded-lg shadow-lg bg-pink-500">
-                    <button 
-                        class="w-full h-full text-5xl"
-                        :class="{
-                            'pointer-events-none': winnerBlock,
-                        }"
-                        @click="tap($event, index, row)">
-                    </button>
-                </div>
-            </div>
-        </div>
+    <h3 v-if="!isOver" class="mb-4 text-xl">Player {{ player }}'s turn</h3>
+    <div v-else>
+      <h3 v-if="winner" class="mb-8 text-6xl font-bold">
+        Player '{{ winner }}' wins!
+      </h3>
+      <h3 v-if="isTie" class="mb-8 text-6xl font-bold">Cat Got It!</h3>
+      <button
+        @click="reset"
+        class="inline-block p-3 px-2 mb-8 bg-blue-700 rounded"
+      >
+        New Game
+      </button>
     </div>
+
+    <div class="flex flex-col items-center mb-8">
+      <div v-for="(row, x) in board" :key="x" class="flex">
+        <button
+          v-for="(cell, y) in row"
+          :key="y"
+          @click="move(x, y)"
+          class="flex items-center justify-center w-24 h-24 text-5xl border border-white cursor-pointer"
+          :class="{
+            'text-lime-600': cell === 'X',
+            'text-orange-500': cell === 'O',
+          }"
+        >
+          {{ cell }}
+        </button>
+      </div>
+    </div>
+  </main>
 </template>

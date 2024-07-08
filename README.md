@@ -31,4 +31,3 @@ For those unfamiliar with the game, [here are the rules](https://www.wikihow.com
 This is an example of what the functionality should look like for the completed exercise.
 
 ![gif of the finished countdown app](https://images.certificates.dev/tic-tac-toe.gif)
-# tic-tac-toe

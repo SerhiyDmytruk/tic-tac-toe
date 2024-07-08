@@ -1,10 +1,3 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-
-.bg-stripes-pink {
-    background-color: #f472b61a;
-    background-image: linear-gradient(135deg, #ec489980 10%, #0000 0, #0000 50%, #ec489980 0, #ec489980 60%, #0000 0, #0000);
-    background-size: 7.07px 7.07px;
-}
